@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Planificación Personal</title>
+  <meta name="description" content="Planificación personal offline-first: roles, tareas, calendario semanal y mensual, metas a largo plazo y recordatorios. Funciona sin conexión y sincroniza con Google Sheets." />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PlanPersonal" />
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- Google Identity Services: botón "Iniciar sesión con Google" (devuelve un ID Token firmado) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <!-- ============ PANTALLA DE ACCESO / REGISTRO ============ -->
+  <div id="auth-screen" class="auth-screen" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="auth-card">
+      <img class="auth-logo" src="./icons/icon-192.png" alt="" width="72" height="72" />
+      <h1 id="auth-title" data-i18n="app.name">Planificación Personal</h1>
+      <p class="auth-sub" data-i18n="auth.subtitle">Roles, semana, mes y metas. Funciona offline y sincroniza con Google Sheets.</p>
+
+      <!-- Registro / inicio de sesión con Google (GIS) -->
+      <div id="gis-button" class="gis-button" data-i18n-aria="auth.gisAria"></div>
+      <p id="gis-error" class="form-error" hidden></p>
+
+      <div class="auth-divider"><span data-i18n="auth.or">o</span></div>
+
+      <!-- Modo alterno: código de acceso compartido (opcional, configurado por el administrador) -->
+      <details class="auth-alt" id="auth-alt">
+        <summary data-i18n="auth.altTitle">Entrar con código de acceso</summary>
+        <form id="access-code-form" autocomplete="off">
+          <label for="ac-email" data-i18n="auth.email">Tu correo</label>
+          <input id="ac-email" name="email" type="email" required placeholder="tucorreo@gmail.com" />
+          <label for="ac-name" data-i18n="auth.name">Tu nombre</label>
+          <input id="ac-name" name="nombre" type="text" required maxlength="60" />
+          <label for="ac-code" data-i18n="auth.code">Código de acceso</label>
+          <input id="ac-code" name="code" type="password" required />
+          <button type="submit" class="btn primary" data-i18n="auth.enter">Entrar / Registrarme</button>
+          <p class="form-error" id="ac-error" hidden></p>
+        </form>
+      </details>
+
+      <button id="btn-demo" class="btn ghost" type="button" data-i18n="auth.demo">Probar demo sin cuenta (offline)</button>
+      <p class="auth-note" data-i18n="auth.note">Al registrarte se crea automáticamente tu propia hoja de cálculo privada en Google Sheets.</p>
+      <div class="auth-lang">
+        <button class="btn tiny ghost" id="btn-lang-auth" type="button">EN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APLICACIÓN ============ -->
+  <div id="app" hidden>
+
+    <header class="app-header" role="banner">
+      <div class="brand">
+        <img src="./icons/icon-192.png" alt="" width="28" height="28" />
+        <span class="brand-name" data-i18n="app.name">Planificación Personal</span>
+      </div>
+
+      <div class="header-tools">
+        <button id="sync-pill" class="sync-pill" type="button" title="Estado de sincronización" aria-live="polite">
+          <span class="dot"></span><span id="sync-label">—</span>
+        </button>
+
+        <button id="btn-search" class="icon-btn" type="button" aria-label="Buscar" title="Buscar (/)" data-i18n-aria="nav.buscar">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 2a8 8 0 105.29 14l4.35 4.36a1 1 0 001.42-1.42l-4.36-4.35A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z"/></svg>
+        </button>
+
+        <div class="popover-wrap">
+          <button id="btn-bell" class="icon-btn" type="button" aria-label="Notificaciones" title="Notificaciones">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a6 6 0 00-6 6v3.6l-1.7 3.1a1 1 0 00.9 1.5h13.6a1 1 0 00.9-1.5L18 11.6V8a6 6 0 00-6-6zm0 20a3 3 0 002.83-2H9.17A3 3 0 0012 22z"/></svg>
+            <span id="bell-badge" class="badge" hidden>0</span>
+          </button>
+          <div id="notif-tray" class="popover" hidden role="menu" aria-label="Bandeja de notificaciones"></div>
+        </div>
+
+        <button id="btn-theme" class="icon-btn" type="button" aria-label="Tema" title="Tema claro/oscuro">
+          <svg class="ic-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-5a1 1 0 011 1v2a1 1 0 11-2 0V3a1 1 0 011-1zm0 18a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1zM2 12a1 1 0 011-1h2a1 1 0 110 2H3a1 1 0 01-1-1zm17 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zM4.2 4.2a1 1 0 011.4 0l1.5 1.4a1 1 0 11-1.5 1.5L4.2 5.6a1 1 0 010-1.4zm12.7 12.7a1 1 0 011.4 0l1.5 1.4a1 1 0 11-1.5 1.5l-1.4-1.5a1 1 0 010-1.4zM19.8 4.2a1 1 0 010 1.4l-1.4 1.5a1 1 0 11-1.5-1.5l1.5-1.4a1 1 0 011.4 0zM6.1 16.9a1 1 0 010 1.4l-1.5 1.5a1 1 0 11-1.4-1.5l1.4-1.4a1 1 0 011.5 0z"/></svg>
+          <svg class="ic-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M21 14.2A9 9 0 019.8 3a1 1 0 00-1.3-1.1A10 10 0 1022 13.3a1 1 0 00-1-1.1z"/></svg>
+        </button>
+
+        <button id="btn-lang" class="icon-btn lang-btn" type="button" aria-label="Idioma" title="ES/EN">ES</button>
+
+        <div class="popover-wrap">
+          <button id="btn-user" class="avatar-btn" type="button" aria-haspopup="menu" title="Cuenta">
+            <span id="user-initial">–</span>
+          </button>
+          <div id="user-menu" class="popover" hidden role="menu">
+            <div class="popover-head"><strong id="menu-name">—</strong><span id="menu-email" class="muted">—</span></div>
+            <button class="menu-item" id="mi-ajustes" role="menuitem" data-i18n="nav.ajustes">Ajustes</button>
+            <button class="menu-item" id="mi-sync" role="menuitem" data-i18n="menu.forceSync">Sincronizar ahora</button>
+            <button class="menu-item" id="mi-backup" role="menuitem" data-i18n="menu.backup">Respaldo JSON</button>
+            <button class="menu-item danger" id="mi-logout" role="menuitem" data-i18n="menu.logout">Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div id="offline-banner" class="offline-banner" hidden data-i18n="banner.offline">
+      Sin conexión — los cambios se guardan localmente y se subirán automáticamente.
+    </div>
+
+    <nav class="tabbar" id="tabbar" role="tablist" aria-label="Secciones">
+      <button class="tab" data-view="hoy" role="tab" aria-selected="false"><span class="tab-ic">☀</span><span data-i18n="nav.hoy">Hoy</span></button>
+      <button class="tab" data-view="semana" role="tab" aria-selected="false"><span class="tab-ic">▦</span><span data-i18n="nav.semana">Semana</span></button>
+      <button class="tab" data-view="mes" role="tab" aria-selected="false"><span class="tab-ic">◫</span><span data-i18n="nav.mes">Mes</span></button>
+      <button class="tab" data-view="roles" role="tab" aria-selected="false"><span class="tab-ic">◈</span><span data-i18n="nav.roles">Roles</span></button>
+      <button class="tab" data-view="metas" role="tab" aria-selected="false"><span class="tab-ic">▲</span><span data-i18n="nav.metas">Largo Plazo</span></button>
+      <button class="tab" data-view="buscar" role="tab" aria-selected="false"><span class="tab-ic">⌕</span><span data-i18n="nav.buscar">Buscar</span></button>
+      <button class="tab" data-view="stats" role="tab" aria-selected="false"><span class="tab-ic">▮</span><span data-i18n="nav.stats">Estadísticas</span></button>
+      <button class="tab" data-view="papelera" role="tab" aria-selected="false"><span class="tab-ic">🗑</span><span data-i18n="nav.papelera">Papelera</span></button>
+      <button class="tab" data-view="ajustes" role="tab" aria-selected="false"><span class="tab-ic">⚙</span><span data-i18n="nav.ajustes">Ajustes</span></button>
+    </nav>
+
+    <main id="view" class="view" role="main" tabindex="-1">
+      <!-- Las vistas se renderizan dinámicamente desde los módulos js/views-*.js -->
+    </main>
+
+    <footer class="app-footer">
+      <span>Planificación Personal v1.0</span>
+      <span id="footer-sync-info" class="muted"></span>
+    </footer>
+  </div>
+
+  <!-- ============ CONTENEDORES GLOBALES ============ -->
+  <div id="modals"></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="print-root" class="print-root" aria-hidden="true"></div>
+
+  <!-- Guía de atajos de teclado -->
+  <div id="shortcuts-help" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-labelledby="sc-title">
+      <div class="modal-head"><h2 id="sc-title" data-i18n="shortcuts.title">Atajos de teclado</h2><button class="icon-btn modal-close" type="button" aria-label="Cerrar">✕</button></div>
+      <div class="modal-body">
+        <table class="table">
+          <tbody>
+            <tr><td><kbd>N</kbd></td><td data-i18n="shortcuts.newTask">Nueva tarea</td></tr>
+            <tr><td><kbd>/</kbd></td><td data-i18n="shortcuts.search">Buscar</td></tr>
+            <tr><td><kbd>G</kbd> <kbd>H</kbd> / <kbd>S</kbd> / <kbd>M</kbd> / <kbd>R</kbd> / <kbd>L</kbd></td><td data-i18n="shortcuts.go">Ir a Hoy / Semana / Mes / Roles / Largo plazo</td></tr>
+            <tr><td><kbd>T</kbd></td><td data-i18n="shortcuts.today">Volver a hoy / esta semana</td></tr>
+            <tr><td><kbd>?</kbd></td><td data-i18n="shortcuts.help">Mostrar esta ayuda</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td data-i18n="shortcuts.close">Cerrar diálogo</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <noscript><p style="padding:2rem;text-align:center">Esta aplicación necesita JavaScript.</p></noscript>
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
