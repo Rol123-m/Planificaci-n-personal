@@ -12,7 +12,7 @@
 const LS_URL = 'pp_api_url';
 
 const state = {
-  url: localStorage.getItem(LS_URL) || 'https://script.google.com/macros/s/AKfycbwoFs-IkErNviNx-0jvBrNoIBk3sh5Vc-wOaqUjpS0tIjWeks0M_YpDa77IPK1IhUde3A/exec',
+  url: localStorage.getItem(LS_URL) || 'https://script.google.com/macros/s/AKfycbxS_hmHzVocHDV_7wNgo057fK5u3CSJcViC26Lq55qiv82O5BmlN7cPThvdact_jykQYQ/exec',
   userId: '',
   token: '',
   demo: false
