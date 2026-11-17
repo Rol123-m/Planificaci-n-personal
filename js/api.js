@@ -9,7 +9,7 @@
  *  - La URL del Web App se guarda en localStorage (la pega el usuario en Ajustes la primera vez).
  */
 
-const LS_URL = 'pp_api_url';
+const LS_URL = 'https://script.google.com/macros/s/AKfycbzX_b93wOHx41T8PaJmrUBZ1nVWzSbVZKkrblkWH6TMRVxw5YrWlhKuZ3fxhnHDZpU_qQ/exec';
 
 const state = {
   url: localStorage.getItem(LS_URL) || '',
