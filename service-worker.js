@@ -14,7 +14,7 @@
  *    docs/MEJORAS-FUTURAS.md). Si llega un push sin payload muestra uno genérico.
  */
 
-const VERSION = 'v1.0.1';
+const VERSION = 'v1.0.2';
 const CACHE_STATIC = `pp-static-${VERSION}`;
 const CACHE_NAV = `pp-nav-${VERSION}`;
 

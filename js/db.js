@@ -7,7 +7,7 @@
  *  - meta        {clave, valor}            → lastSync, userId, nombre, email, theme, demo, etc.
  *  - roles/tareas/metas/recordatorios/etiquetas  → entidades sincronizadas (keyPath: id)
  *  - config      {clave, valor}            → configuración por usuario (sincronizada)
- *  - outbox      autoIncrement             → cola de operaciones pendientes de subir
+ *  - outbox      {op_id}                   → cola de operaciones pendientes de subir
  *  - history     autoIncrement             → auditoría ligera local
  *  - notifs      autoIncrement             → bandeja de notificaciones locales
  *  - conflicts   autoIncrement             → conflictos sin resolver
